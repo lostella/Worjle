@@ -1,0 +1,7 @@
+name = "Worjle"
+uuid = "e2f0e1f5-1ce9-4a86-aa30-2b4c9c9a7fd8"
+authors = ["Lorenzo Stella <lorenzostella@gmail.com>"]
+version = "0.1.0"
+
+[deps]
+ProgressMeter = "92933f4c-e287-5a05-a399-4b506db050ca"
