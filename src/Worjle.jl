@@ -2,12 +2,12 @@ module Worjle
 
 using ProgressMeter
 
-const feedback_atoms = ['b', 'y', 'g']
+const feedback_chars = ['b', 'y', 'g']
 
 function validate_feedback(feedback)
     feedback == "!" && return true
-    length(feedback) == 5 && all(in.(collect(feedback), Ref(feedback_atoms))) && return true
-    @warn "feedback should of length 5, with characters from $feedback_atoms; got \"$feedback\""
+    length(feedback) == 5 && all(in.(collect(feedback), Ref(feedback_chars))) && return true
+    @warn "feedback should of length 5, with characters from $feedback_chars; got \"$feedback\""
     return false
 end
 
@@ -37,13 +37,14 @@ function compute_feedback(word, guess)
         feedback_vector[k] = 'y'
         word_vector[j] = '.'
     end
-    return string(feedback_vector...)
+    return join(feedback_vector)
 end
 
-function find_best_guess(words)
+function find_best_guess(words; show_progress::Bool=true)
     best_guess = words[1]
     best_score = typemax(Int)
-    @showprogress for guess in words
+    p = Progress(length(words); enabled=show_progress)
+    for guess in words
         count = Dict{String, Int}()
         for word in words
             feedback = compute_feedback(word, guess)
@@ -60,16 +61,24 @@ function find_best_guess(words)
             best_score = score
             best_guess = guess
         end
+        ProgressMeter.next!(p; showvalues=[(:guess, best_guess), (:score, best_score)])
     end
     return best_guess
 end
 
-default_word_list() = collect(eachline(joinpath(@__DIR__, "data", "words.txt")))
+default_word_list() = collect(eachline(joinpath(@__DIR__, "data", "large.txt")))
+wordle_target_list() = collect(eachline(joinpath(@__DIR__, "data", "wordle_target.txt")))
 
-function play(feedback_fn::Function=read_feedback, words::Vector{String}=default_word_list(), max_guesses=10)
+function play(
+    feedback_fn::Function=read_feedback;
+    words::Vector{String}=default_word_list(),
+    first_guess::Union{Nothing, String}="serai",
+    max_guesses::Int=10,
+    show_progress::Bool=true,
+)
     num_guesses = 0
     while num_guesses < max_guesses
-        guess = num_guesses == 0 && "serai" in words ? "serai" : find_best_guess(words)
+        guess = num_guesses == 0 && first_guess in words ? first_guess : find_best_guess(words; show_progress)
         feedback = feedback_fn(guess)
         if feedback == "!"
             deleteat!(words, findall(isequal(guess), words))
@@ -86,8 +95,11 @@ function play(feedback_fn::Function=read_feedback, words::Vector{String}=default
     return num_guesses
 end
 
-play(word::String, args...) = play(guess -> compute_feedback(word, guess), args...)
+play(word::String; kwargs...) = play(guess -> compute_feedback(word, guess); kwargs...)
 
-play(n::Int, words::Vector{String}=default_word_list(), args...) = @showprogress [play(rand(words), args...) for _ in 1:n]
+function play(n::Int; words::Vector{String}=default_word_list(), kwargs...)
+    first_guess = find_best_guess(words)
+    @showprogress [play(rand(words); words, kwargs..., first_guess, show_progress=false) for _ in 1:n]
+end
 
 end # module
