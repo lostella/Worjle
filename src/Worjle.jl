@@ -5,6 +5,7 @@ using ProgressMeter
 const feedback_atoms = ['b', 'y', 'g']
 
 function validate_feedback(feedback)
+    feedback == "!" && return true
     length(feedback) == 5 && all(in.(collect(feedback), Ref(feedback_atoms))) && return true
     @warn "feedback should of length 5, with characters from $feedback_atoms; got \"$feedback\""
     return false
@@ -65,22 +66,28 @@ end
 
 default_word_list() = collect(eachline(joinpath(@__DIR__, "data", "words.txt")))
 
-function play(feedback_fn::Function=read_feedback, words::Vector{String}=default_word_list())
-    for k in 1:6
-        guess = k == 1 ? "serai" : find_best_guess(words)
+function play(feedback_fn::Function=read_feedback, words::Vector{String}=default_word_list(), max_guesses=10)
+    num_guesses = 0
+    while num_guesses < max_guesses
+        guess = num_guesses == 0 && "serai" in words ? "serai" : find_best_guess(words)
         feedback = feedback_fn(guess)
-        feedback == "ggggg" && return k
+        if feedback == "!"
+            deleteat!(words, findall(isequal(guess), words))
+            continue
+        end
+        num_guesses += 1
+        feedback == "ggggg" && break
         words = filter(w -> compute_feedback(w, guess) == feedback, words)
         if length(words) == 0
             @error "I'm sorry, I'm out of words :-("
-            return 7
+            num_guesses = max_guesses
         end
     end
-    return 7
+    return num_guesses
 end
 
-play(word::String, words::Vector{String}=default_word_list()) = play(guess -> compute_feedback(word, guess), words)
+play(word::String, args...) = play(guess -> compute_feedback(word, guess), args...)
 
-play(n::Int, words::Vector{String}=default_word_list()) = @showprogress [play(rand(words), words) for _ in 1:n]
+play(n::Int, words::Vector{String}=default_word_list(), args...) = @showprogress [play(rand(words), args...) for _ in 1:n]
 
 end # module
