@@ -73,33 +73,33 @@ function play(
     feedback_fn::Function=read_feedback;
     words::Vector{String}=default_word_list(),
     first_guess::Union{Nothing, String}="serai",
-    max_guesses::Int=10,
+    max_guesses::Int=typemax(Int),
     show_progress::Bool=true,
 )
-    num_guesses = 0
-    while num_guesses < max_guesses
-        guess = num_guesses == 0 && first_guess in words ? first_guess : find_best_guess(words; show_progress)
+    history = Pair{String, String}[]
+    while length(history) < max_guesses
+        guess = length(history) == 0 && first_guess in words ? first_guess : find_best_guess(words; show_progress)
         feedback = feedback_fn(guess)
         if feedback == "!"
             deleteat!(words, findall(isequal(guess), words))
             continue
         end
-        num_guesses += 1
+        push!(history, guess=>feedback)
         feedback == "ggggg" && break
         words = filter(w -> compute_feedback(w, guess) == feedback, words)
         if length(words) == 0
             @error "I'm sorry, I'm out of words :-("
-            num_guesses = max_guesses
+            break
         end
     end
-    return num_guesses
+    return history
 end
 
 play(word::String; kwargs...) = play(guess -> compute_feedback(word, guess); kwargs...)
 
 function play(n::Int; words::Vector{String}=default_word_list(), kwargs...)
     first_guess = find_best_guess(words)
-    @showprogress [play(rand(words); words, kwargs..., first_guess, show_progress=false) for _ in 1:n]
+    @showprogress [play(rand(words); words, first_guess, show_progress=false, kwargs...) for _ in 1:n]
 end
 
 end # module

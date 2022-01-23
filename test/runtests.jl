@@ -22,11 +22,12 @@ end
 
 @testset "play" begin
 
-    @test Worjle.play("silly"; show_progress=false) <= 4
-    @test Worjle.play("prick"; show_progress=false) <= 4
-    @test Worjle.play("prick"; show_progress=false) <= 6
-    @test Worjle.play("after"; show_progress=false) <= 3
-    @test Worjle.play("robot"; show_progress=false) <= 4
-    @test Worjle.play("night"; show_progress=false) <= 3
+    words_num_guesses = [("silly", 4), ("prick", 4), ("bombs", 6), ("after", 3), ("robot", 4), ("night", 3)]
+
+    for (word, num_guesses) in words_num_guesses
+        history = Worjle.play(word; show_progress=false)
+        @test length(history) <= num_guesses
+        @test history[end][2] == "ggggg"
+    end
 
 end
