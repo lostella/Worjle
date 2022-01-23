@@ -12,7 +12,7 @@ function validate_feedback(feedback)
 end
 
 function read_feedback(guess)
-    println("  $guess")
+    printstyled("  $guess\n"; bold=true)
     while true
         print("> ")
         feedback = readline() |> strip
