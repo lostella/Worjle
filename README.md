@@ -20,4 +20,5 @@ $ julia --project -e 'using Worjle; Worjle.play()'
 >
 ```
 
+That's right, [offal](https://en.wikipedia.org/wiki/Offal).
 You can simply hit `<enter>` to accept a guess and terminate the program.
