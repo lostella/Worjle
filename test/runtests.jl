@@ -7,6 +7,7 @@ using Test
 
     @test Worjle.compute_feedback("sissy", "reals") == "bbbby"
     @test Worjle.compute_feedback("sissy", "spots") == "gbbby"
+    @test Worjle.compute_feedback("story", "spots") == "gbgyb"
     @test Worjle.compute_feedback("proxy", "proof") == "gggbb"
     @test Worjle.compute_feedback("proof", "proxy") == "gggbb"
 
