@@ -21,6 +21,21 @@ function read_feedback(guess)
     end
 end
 
+function validate_guess(guess)
+    length(guess) == 5 && return true
+    @warn "guess should of length 5; got \"$guess\""
+    return false
+end
+
+function read_guess(feedback)
+    printstyled("  $feedback\n"; bold=true)
+    while true
+        print("> ")
+        guess = readline() |> strip
+        validate_guess(guess) && return guess
+    end
+end
+
 function compute_feedback(word, guess)
     word_vector = collect(word)
     feedback_vector = ['b', 'b', 'b', 'b', 'b']
@@ -67,21 +82,29 @@ function find_best_guess(guesses, targets; show_progress::Bool=true)
     return best_guess
 end
 
+find_best_guess_quiet(guesses, targets) = find_best_guess(guesses, targets; show_progress=false)
+
 default_word_list() = collect(eachline(joinpath(@__DIR__, "data", "large.txt")))
-wordle_target_list() = collect(eachline(joinpath(@__DIR__, "data", "wordle_target.txt")))
+
+wordle_target() = collect(eachline(joinpath(@__DIR__, "data", "wordle_target.txt")))
+
+wordle_all() = vcat(
+    collect(eachline(joinpath(@__DIR__, "data", "wordle_target.txt"))),
+    collect(eachline(joinpath(@__DIR__, "data", "wordle_additional.txt"))),
+)
 
 function play(
     feedback_fn::Function=read_feedback;
+    player_fn::Function=find_best_guess,
     words::Vector{String}=default_word_list(),
     hard_mode::Bool=true,
     first_guess::Union{Nothing, String}="serai",
     max_guesses::Int=typemax(Int),
-    show_progress::Bool=true,
 )
     guesses = words
     history = Pair{String, String}[]
     while length(history) < max_guesses
-        guess = length(history) == 0 && first_guess in guesses ? first_guess : find_best_guess(guesses, words; show_progress)
+        guess = length(history) == 0 && first_guess in guesses ? first_guess : player_fn(guesses, words)
         feedback = feedback_fn(guess)
         if feedback == "!"
             deleteat!(words, findall(isequal(guess), words))
@@ -100,11 +123,11 @@ function play(
     return history
 end
 
-play(word::String; kwargs...) = play(guess -> compute_feedback(word, guess); kwargs...)
+play(target::String; kwargs...) = play(guess -> compute_feedback(target, guess); kwargs...)
 
-function play(n::Int; words::Vector{String}=default_word_list(), kwargs...)
+function play(targets::Vector{String}; player_fn=find_best_guess_quiet, words::Vector{String}=default_word_list(), kwargs...)
     first_guess = find_best_guess(words, words)
-    @showprogress [play(rand(words); words, first_guess, show_progress=false, kwargs...) for _ in 1:n]
+    @showprogress [play(target; player_fn, words, first_guess, kwargs...) for target in targets]
 end
 
 end # module

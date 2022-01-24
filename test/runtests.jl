@@ -18,7 +18,7 @@ end
 
     @inferred Worjle.find_best_guess(words, words; show_progress=false)
 
-    words = Worjle.wordle_target_list()
+    words = Worjle.wordle_target()
 
     @test Worjle.find_best_guess(words, words; show_progress=false) in ["arise", "serai"]
 
@@ -29,7 +29,7 @@ end
     words_num_guesses = [("silly", 4), ("prick", 4), ("bombs", 6), ("after", 3), ("robot", 4), ("night", 3)]
 
     for (word, num_guesses) in words_num_guesses
-        history = Worjle.play(word; hard_mode=true, show_progress=false)
+        history = Worjle.play(word; player_fn=Worjle.find_best_guess_quiet, hard_mode=true)
         @test length(history) <= num_guesses
         @test history[end][2] == "ggggg"
     end
