@@ -40,14 +40,15 @@ function compute_feedback(word, guess)
     return join(feedback_vector)
 end
 
-function find_best_guess(words; show_progress::Bool=true)
-    best_guess = words[1]
+function find_best_guess(guesses, targets; show_progress::Bool=true)
+    length(targets) == 1 && return targets[1]
+    best_guess = guesses[1]
     best_score = typemax(Int)
-    p = Progress(length(words); enabled=show_progress)
-    for guess in words
+    p = Progress(length(guesses); enabled=show_progress)
+    for guess in guesses
         count = Dict{String, Int}()
-        for word in words
-            feedback = compute_feedback(word, guess)
+        for target in targets
+            feedback = compute_feedback(target, guess)
             if !(feedback in keys(count))
                 count[feedback] = 0
             end
@@ -72,22 +73,26 @@ wordle_target_list() = collect(eachline(joinpath(@__DIR__, "data", "wordle_targe
 function play(
     feedback_fn::Function=read_feedback;
     words::Vector{String}=default_word_list(),
+    hard_mode::Bool=true,
     first_guess::Union{Nothing, String}="serai",
     max_guesses::Int=typemax(Int),
     show_progress::Bool=true,
 )
+    guesses = words
     history = Pair{String, String}[]
     while length(history) < max_guesses
-        guess = length(history) == 0 && first_guess in words ? first_guess : find_best_guess(words; show_progress)
+        guess = length(history) == 0 && first_guess in guesses ? first_guess : find_best_guess(guesses, words; show_progress)
         feedback = feedback_fn(guess)
         if feedback == "!"
             deleteat!(words, findall(isequal(guess), words))
+            deleteat!(guesses, findall(isequal(guess), guesses))
             continue
         end
         push!(history, guess=>feedback)
         feedback == "ggggg" && break
         words = filter(w -> compute_feedback(w, guess) == feedback, words)
-        if length(words) == 0
+        guesses = hard_mode ? words : guesses
+        if length(guesses) == 0
             @error "I'm sorry, I'm out of words :-("
             break
         end
@@ -98,7 +103,7 @@ end
 play(word::String; kwargs...) = play(guess -> compute_feedback(word, guess); kwargs...)
 
 function play(n::Int; words::Vector{String}=default_word_list(), kwargs...)
-    first_guess = find_best_guess(words)
+    first_guess = find_best_guess(words, words)
     @showprogress [play(rand(words); words, first_guess, show_progress=false, kwargs...) for _ in 1:n]
 end
 

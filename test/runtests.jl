@@ -14,9 +14,13 @@ end
 
 @testset "find_best_guess" begin
 
-    @inferred Worjle.find_best_guess(["sissy", "reals", "spots", "proxy", "proof", "bobby", "table", "phase"])
+    words = ["sissy", "reals", "spots", "proxy", "proof", "bobby", "table", "phase"]
 
-    @test Worjle.find_best_guess(Worjle.wordle_target_list(); show_progress=false) in ["arise", "serai"]
+    @inferred Worjle.find_best_guess(words, words; show_progress=false)
+
+    words = Worjle.wordle_target_list()
+
+    @test Worjle.find_best_guess(words, words; show_progress=false) in ["arise", "serai"]
 
 end
 
@@ -25,7 +29,7 @@ end
     words_num_guesses = [("silly", 4), ("prick", 4), ("bombs", 6), ("after", 3), ("robot", 4), ("night", 3)]
 
     for (word, num_guesses) in words_num_guesses
-        history = Worjle.play(word; show_progress=false)
+        history = Worjle.play(word; hard_mode=true, show_progress=false)
         @test length(history) <= num_guesses
         @test history[end][2] == "ggggg"
     end
