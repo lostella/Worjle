@@ -2,6 +2,15 @@ module Worjle
 
 using ProgressMeter
 
+default_word_list() = collect(eachline(joinpath(@__DIR__, "data", "large.txt")))
+
+wordle_target() = collect(eachline(joinpath(@__DIR__, "data", "wordle_target.txt")))
+
+wordle_all() = vcat(
+    collect(eachline(joinpath(@__DIR__, "data", "wordle_target.txt"))),
+    collect(eachline(joinpath(@__DIR__, "data", "wordle_additional.txt"))),
+)
+
 const feedback_chars = ['b', 'y', 'g']
 
 function validate_feedback(feedback)
@@ -12,9 +21,9 @@ function validate_feedback(feedback)
 end
 
 function read_feedback(guess)
-    printstyled("  $guess\n"; bold=true)
+    printstyled("          $guess\n"; bold=true)
     while true
-        print("> ")
+        print("feedback> ")
         feedback = readline() |> strip
         feedback = isempty(feedback) ? "ggggg" : feedback
         validate_feedback(feedback) && return feedback
@@ -28,9 +37,11 @@ function validate_guess(guess)
 end
 
 function read_guess(feedback)
-    printstyled("  $feedback\n"; bold=true)
+    if feedback !== nothing
+        printstyled("          $feedback\n"; bold=true)
+    end
     while true
-        print("> ")
+        print("   guess> ")
         guess = readline() |> strip
         validate_guess(guess) && return guess
     end
@@ -55,7 +66,7 @@ function compute_feedback(target, guess)
     return join(feedback_vector)
 end
 
-function find_best_guess(guesses, targets; verbose::Bool=true)
+function min_max_guess(guesses, targets; verbose::Bool=true)
     if verbose
         @info "$(length(targets)) words in the list"
     end
@@ -85,52 +96,74 @@ function find_best_guess(guesses, targets; verbose::Bool=true)
     return best_guess
 end
 
-quiet(player_fn) = (args...) -> player_fn(args...; verbose=false)
+struct InteractiveGuess end
 
-default_word_list() = collect(eachline(joinpath(@__DIR__, "data", "large.txt")))
+function make_guess(::InteractiveGuess, state=nothing, feedback=nothing)
+    guess = read_guess(feedback)
+    return state, guess
+end
 
-wordle_target() = collect(eachline(joinpath(@__DIR__, "data", "wordle_target.txt")))
+struct MinMaxGuess
+    words::Vector{String}
+    first_guess::String
+    hard_mode::Bool
+end
 
-wordle_all() = vcat(
-    collect(eachline(joinpath(@__DIR__, "data", "wordle_target.txt"))),
-    collect(eachline(joinpath(@__DIR__, "data", "wordle_additional.txt"))),
-)
-
-function play(
-    feedback_fn::Function=read_feedback;
-    player_fn::Function=find_best_guess,
-    words::Vector{String}=default_word_list(),
-    hard_mode::Bool=true,
-    first_guess::Union{Nothing, String}="serai",
-    max_guesses::Int=typemax(Int),
-)
-    guesses = words
-    history = Pair{String, String}[]
-    while length(history) < max_guesses
-        guess = length(history) == 0 && first_guess in guesses ? first_guess : player_fn(guesses, words)
-        feedback = feedback_fn(guess)
+function make_guess(guesser::MinMaxGuess, state=nothing, previous_guess_feedback=nothing; verbose::Bool=true)
+    @assert (state === nothing) == (previous_guess_feedback === nothing)
+    words, candidates = state === nothing ? (guesser.words, guesser.words) : state
+    if previous_guess_feedback !== nothing
+        previous_guess, feedback = previous_guess_feedback
         if feedback == "!"
-            deleteat!(words, findall(isequal(guess), words))
-            deleteat!(guesses, findall(isequal(guess), guesses))
-            continue
+            deleteat!(words, findall(isequal(previous_guess), words))
+            deleteat!(candidates, findall(isequal(previous_guess), candidates))
+        else
+            candidates = filter(w -> compute_feedback(w, previous_guess) == feedback, candidates)
+            words = guesser.hard_mode ? candidates : words
         end
+    end
+    guess = if length(words) == 0
+        @error "I'm sorry, I'm out of words :-("
+        nothing
+    elseif previous_guess_feedback === nothing
+        guesser.first_guess
+    else
+        min_max_guess(words, candidates; verbose)
+    end
+    return (words, candidates), guess
+end
+
+struct Quiet{T}
+    guesser::T
+end
+
+make_guess(q::Quiet, args...) = make_guess(q.guesser, args...; verbose=false)
+
+struct InteractiveFeedback end
+
+give_feedback(::InteractiveFeedback, guess) = read_feedback(guess)
+
+struct WordFeedback
+    target::String
+end
+
+give_feedback(wf::WordFeedback, guess) = compute_feedback(wf.target, guess)
+
+function play(feedback_giver=InteractiveFeedback(), guesser=MinMaxGuess(default_word_list(), "serai", true))
+    state, guess = make_guess(guesser)
+    feedback = give_feedback(feedback_giver, guess)
+    history = Pair{String, String}[guess=>feedback]
+    while feedback != "ggggg"
+        state, guess = make_guess(guesser, state, guess=>feedback)
+        guess === nothing && break
+        feedback = give_feedback(feedback_giver, guess)
         push!(history, guess=>feedback)
-        feedback == "ggggg" && break
-        words = filter(w -> compute_feedback(w, guess) == feedback, words)
-        guesses = hard_mode ? words : guesses
-        if length(guesses) == 0
-            @error "I'm sorry, I'm out of words :-("
-            break
-        end
     end
     return history
 end
 
-play(target::String; kwargs...) = play(guess -> compute_feedback(target, guess); kwargs...)
+play(target::String, args...) = play(WordFeedback(target), args...)
 
-function play(targets::Vector{String}; player_fn=find_best_guess, words::Vector{String}=default_word_list(), kwargs...)
-    first_guess = find_best_guess(words, words)
-    @showprogress [play(target; player_fn, words, first_guess, kwargs...) for target in targets]
-end
+play(targets::Vector{String}, args...) = @showprogress [play(target, args...) for target in targets]
 
 end # module

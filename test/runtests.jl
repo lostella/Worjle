@@ -1,4 +1,4 @@
-using Worjle: compute_feedback, find_best_guess, quiet, play, wordle_target
+using Worjle: default_word_list, wordle_target, compute_feedback, min_max_guess, MinMaxGuess, Quiet, play
 using Test
 
 @testset "compute_feedback" begin
@@ -18,11 +18,11 @@ end
 
     words = ["sissy", "reals", "spots", "proxy", "proof", "bobby", "table", "phase"]
 
-    @inferred quiet(find_best_guess)(words, words)
+    @inferred min_max_guess(words, words; verbose=false)
 
     words = wordle_target()
 
-    @test quiet(find_best_guess)(words, words) in ["arise", "serai"]
+    @test min_max_guess(words, words; verbose=false) in ["arise", "serai"]
 
 end
 
@@ -31,7 +31,7 @@ end
     words_num_guesses = [("silly", 4), ("prick", 4), ("bombs", 6), ("after", 3), ("robot", 4), ("night", 3)]
 
     for (word, num_guesses) in words_num_guesses
-        history = play(word; player_fn=quiet(find_best_guess), hard_mode=true)
+        history = play(word, Quiet(MinMaxGuess(default_word_list(), "serai", true)))
         @test length(history) <= num_guesses
         @test history[end][2] == "ggggg"
     end
