@@ -103,10 +103,10 @@ function make_guess(::InteractiveGuess, state=nothing, feedback=nothing)
     return state, guess
 end
 
-struct MinMaxGuess
-    words::Vector{String}
-    first_guess::String
-    hard_mode::Bool
+Base.@kwdef struct MinMaxGuess
+    words::Vector{String}=default_word_list()
+    first_guess::String="serai"
+    hard_mode::Bool=true
 end
 
 function make_guess(guesser::MinMaxGuess, state=nothing, previous_guess_feedback=nothing; verbose::Bool=true)

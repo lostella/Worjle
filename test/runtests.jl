@@ -31,7 +31,7 @@ end
     words_num_guesses = [("silly", 4), ("prick", 4), ("bombs", 6), ("after", 3), ("robot", 4), ("night", 3)]
 
     for (word, num_guesses) in words_num_guesses
-        history = play(word, Quiet(MinMaxGuess(default_word_list(), "serai", true)))
+        history = play(word, MinMaxGuess() |> Quiet)
         @test length(history) <= num_guesses
         @test history[end][2] == "ggggg"
     end
