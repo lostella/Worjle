@@ -55,11 +55,14 @@ function compute_feedback(target, guess)
     return join(feedback_vector)
 end
 
-function find_best_guess(guesses, targets; show_progress::Bool=true)
+function find_best_guess(guesses, targets; verbose::Bool=true)
+    if verbose
+        @info "$(length(targets)) words in the list"
+    end
     length(targets) == 1 && return targets[1]
     best_guess = guesses[1]
     best_score = typemax(Int)
-    p = Progress(length(guesses); enabled=show_progress)
+    p = Progress(length(guesses); enabled=verbose)
     for guess in guesses
         count = Dict{String, Int}()
         for target in targets
@@ -82,7 +85,7 @@ function find_best_guess(guesses, targets; show_progress::Bool=true)
     return best_guess
 end
 
-find_best_guess_quiet(guesses, targets) = find_best_guess(guesses, targets; show_progress=false)
+quiet(player_fn) = (args...) -> player_fn(args...; verbose=false)
 
 default_word_list() = collect(eachline(joinpath(@__DIR__, "data", "large.txt")))
 
@@ -125,7 +128,7 @@ end
 
 play(target::String; kwargs...) = play(guess -> compute_feedback(target, guess); kwargs...)
 
-function play(targets::Vector{String}; player_fn=find_best_guess_quiet, words::Vector{String}=default_word_list(), kwargs...)
+function play(targets::Vector{String}; player_fn=find_best_guess, words::Vector{String}=default_word_list(), kwargs...)
     first_guess = find_best_guess(words, words)
     @showprogress [play(target; player_fn, words, first_guess, kwargs...) for target in targets]
 end

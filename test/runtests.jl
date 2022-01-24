@@ -1,16 +1,16 @@
-using Worjle
+using Worjle: compute_feedback, find_best_guess, quiet, play, wordle_target
 using Test
 
 @testset "compute_feedback" begin
     
-    @inferred Worjle.compute_feedback("sissy", "reals")
+    @inferred compute_feedback("sissy", "reals")
 
-    @test Worjle.compute_feedback("sissy", "reals") == "bbbby"
-    @test Worjle.compute_feedback("sissy", "spots") == "gbbby"
-    @test Worjle.compute_feedback("spots", "sissy") == "gbybb"
-    @test Worjle.compute_feedback("story", "spots") == "gbgyb"
-    @test Worjle.compute_feedback("proxy", "proof") == "gggbb"
-    @test Worjle.compute_feedback("proof", "proxy") == "gggbb"
+    @test compute_feedback("sissy", "reals") == "bbbby"
+    @test compute_feedback("sissy", "spots") == "gbbby"
+    @test compute_feedback("spots", "sissy") == "gbybb"
+    @test compute_feedback("story", "spots") == "gbgyb"
+    @test compute_feedback("proxy", "proof") == "gggbb"
+    @test compute_feedback("proof", "proxy") == "gggbb"
 
 end
 
@@ -18,11 +18,11 @@ end
 
     words = ["sissy", "reals", "spots", "proxy", "proof", "bobby", "table", "phase"]
 
-    @inferred Worjle.find_best_guess(words, words; show_progress=false)
+    @inferred quiet(find_best_guess)(words, words)
 
-    words = Worjle.wordle_target()
+    words = wordle_target()
 
-    @test Worjle.find_best_guess(words, words; show_progress=false) in ["arise", "serai"]
+    @test quiet(find_best_guess)(words, words) in ["arise", "serai"]
 
 end
 
@@ -31,7 +31,7 @@ end
     words_num_guesses = [("silly", 4), ("prick", 4), ("bombs", 6), ("after", 3), ("robot", 4), ("night", 3)]
 
     for (word, num_guesses) in words_num_guesses
-        history = Worjle.play(word; player_fn=Worjle.find_best_guess_quiet, hard_mode=true)
+        history = play(word; player_fn=quiet(find_best_guess), hard_mode=true)
         @test length(history) <= num_guesses
         @test history[end][2] == "ggggg"
     end
