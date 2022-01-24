@@ -36,21 +36,21 @@ function read_guess(feedback)
     end
 end
 
-function compute_feedback(word, guess)
-    word_vector = collect(word)
+function compute_feedback(target, guess)
+    target_vector = collect(target)
     feedback_vector = ['b', 'b', 'b', 'b', 'b']
-    for k in 1:length(word_vector)
-        if guess[k] == word_vector[k]
+    for k in 1:length(target_vector)
+        if guess[k] == target_vector[k]
             feedback_vector[k] = 'g'
-            word_vector[k] = '.'
+            target_vector[k] = '.'
         end
     end
-    for k in 1:length(word_vector)
+    for k in 1:length(target_vector)
         feedback_vector[k] == 'g' && continue
-        j = findfirst(isequal(guess[k]), word_vector)
+        j = findfirst(isequal(guess[k]), target_vector)
         j === nothing && continue
         feedback_vector[k] = 'y'
-        word_vector[j] = '.'
+        target_vector[j] = '.'
     end
     return join(feedback_vector)
 end
