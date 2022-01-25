@@ -104,8 +104,8 @@ function make_guess(::InteractiveGuess, state=nothing, feedback=nothing)
 end
 
 Base.@kwdef struct MinMaxGuess
-    words::Vector{String}=default_word_list()
-    first_guess::String="serai"
+    words::Vector{String}=wordle_all()
+    first_guess::String=min_max_guess(words, words)
     hard_mode::Bool=true
 end
 
@@ -149,7 +149,7 @@ end
 
 give_feedback(wf::WordFeedback, guess) = compute_feedback(wf.target, guess)
 
-function play(feedback_giver=InteractiveFeedback(), guesser=MinMaxGuess(default_word_list(), "serai", true))
+function play(feedback_giver=InteractiveFeedback(), guesser=MinMaxGuess())
     state, guess = make_guess(guesser)
     feedback = give_feedback(feedback_giver, guess)
     history = Pair{String, String}[guess=>feedback]
