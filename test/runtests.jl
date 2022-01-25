@@ -28,10 +28,10 @@ end
 
 @testset "play" begin
 
-    words_num_guesses = [("silly", 4), ("prick", 4), ("bombs", 6), ("after", 3), ("robot", 4), ("night", 3)]
+    words_num_guesses = [("silly", 5), ("prick", 4), ("bombs", 6), ("after", 3), ("robot", 4), ("night", 3)]
 
     for (word, num_guesses) in words_num_guesses
-        history = play(word, MinMaxGuess() |> Quiet)
+        history = play(word, MinMaxGuess(first_guess="serai") |> Quiet)
         @test length(history) <= num_guesses
         @test history[end][2] == "ggggg"
     end
